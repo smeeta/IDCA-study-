@@ -1,0 +1,44 @@
+
+############################################################
+# 📊 FIGURE 3 — HEATMAP (Top Differentially Expressed Genes)
+############################################################
+library(DESeq2)
+library(dplyr)
+library(pheatmap)
+############################################################
+## 1. Select top DE genes
+############################################################
+top_genes <- res_df %>%
+  arrange(padj) %>%
+  head(20) %>%
+  pull(gene)
+############################################################
+## 2. Expression matrix
+############################################################
+heatmap_matrix <- expr[top_genes, ]
+############################################################
+## 3. Heatmap with improved axis readability + reduced width
+############################################################
+pheatmap(
+  heatmap_matrix,
+  scale = "row",
+  cluster_rows = TRUE,
+  cluster_cols = TRUE,
+  show_rownames = TRUE,
+
+  # 🔠 TEXT SIZE CONTROL (KEY FIX)
+  fontsize_row = 12,   # gene labels (Y-axis)
+  fontsize_col = 12,   # sample labels (X-axis)
+  
+  # 🧾 TITLE
+  main = "Top 20 Differentially Expressed Genes (IDCA vs Control)",
+  
+  # 💾 SAVE OUTPUT
+  filename = "Figure3_heatmap.png",
+  
+  # 📐 DIMENSIONS (NARROWER WIDTH)
+  width = 6,   # reduced from 8 → makes plot less wide
+  height = 7
+)
+
+
