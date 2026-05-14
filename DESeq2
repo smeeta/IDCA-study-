@@ -1,0 +1,82 @@
+
+##----------------------------------------------------------------------
+## RNASeq Data analysis 
+## Date : 14th May 2026
+## Control : HHL-5 P20 
+## Case : HHL-5 + IDCA P20 
+## Long term exposure to IDCA in HHL-5 (Immortalised heaptocyte cell line )
+
+##----------------------------------------------------------------------
+## 1. Install if needed
+##----------------------------------------------------------------------
+install.packages(c("pheatmap", "ggplot2", "EnhancedVolcano"))
+
+if (!requireNamespace("BiocManager", quietly = TRUE))
+  install.packages("BiocManager")
+
+BiocManager::install(c(
+  "DESeq2",
+  "clusterProfiler",
+  "org.Hs.eg.db",
+  "EnhancedVolcano",
+  "enrichplot"
+))
+
+if (!requireNamespace("BiocManager", quietly = TRUE))
+  install.packages("BiocManager")
+
+BiocManager::install("apeglm")
+##----------------------------------------------------------------------
+## 2. Load Libraries 
+##----------------------------------------------------------------------
+
+library(DESeq2)
+library(ggplot2)
+library(pheatmap)
+library(EnhancedVolcano)
+library(clusterProfiler)
+library(org.Hs.eg.db)
+library(enrichplot)
+library(apeglm)
+
+##----------------------------------------------------------------------
+## 3. INPUT FILES
+##----------------------------------------------------------------------
+
+setwd("/Users/smeetashrestha/Documents/documents_v1/lkc_files/2026_IDCA/2026_IDCA_Analysis")
+counts <- read.csv("gene_expression_count.csv", row.names=1)
+metadata <- read.csv("idca_meta.csv", row.names=1)
+
+#################################################
+# FIND NON-INTEGER VALUES
+#################################################
+
+non_integer <- counts[counts != round(counts)]
+length(non_integer)
+head(non_integer)
+
+
+metadata$condition <- factor(metadata$condition,levels = c("Ctrl", "IDCA"))
+
+##----------------------------------------------------------------------
+## 4. Create DESeq2 object
+##----------------------------------------------------------------------
+dds <- DESeqDataSetFromMatrix(
+  countData = counts,
+  colData = metadata,
+  design = ~ condition
+)
+
+dds <- DESeq(dds)
+res <- results(dds,
+               contrast = c("condition", "IDCA", "Ctrl"))
+res <- lfcShrink(dds,
+                 coef="condition_IDCA_vs_Ctrl",
+                 type="apeglm")
+
+##----------------------------------------------------------------------
+## 5. Convert to dataframe
+##----------------------------------------------------------------------
+res_df <- as.data.frame(res)
+res_df$gene <- rownames(res_df)
+head(res_df)
