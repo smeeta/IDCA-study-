@@ -1,0 +1,111 @@
+############################################################
+# 📦 1. Load required libraries
+# Author - Smeeta Shrestha
+# Date - 14th May 2026
+############################################################
+
+library(DESeq2)
+library(dplyr)
+library(clusterProfiler)
+library(org.Hs.eg.db)
+library(enrichplot)
+library(ggplot2)
+
+############################################################
+# 📊 2. Extract DESeq2 results
+############################################################
+
+res <- results(dds)
+res_df <- as.data.frame(res)
+
+# Clean and order by significance
+res_df <- res_df %>%
+  filter(!is.na(padj)) %>%
+  arrange(padj)
+
+############################################################
+# 🧬 3. Select TOP significant genes
+############################################################
+# Option A: Top 50 genes
+top_genes <- res_df %>%
+  head(50) %>%
+  rownames()
+
+# (Optional better alternative)
+# top_genes <- rownames(res_df[res_df$padj < 0.05, ])
+
+############################################################
+# 🔁 4. Convert SYMBOL → ENTREZ IDs
+############################################################
+
+gene_df <- bitr(
+  top_genes,
+  fromType = "SYMBOL",
+  toType   = "ENTREZID",
+  OrgDb    = org.Hs.eg.db
+)
+
+entrez_genes <- unique(gene_df$ENTREZID)
+
+############################################################
+# 🧪 5. KEGG Pathway Enrichment
+############################################################
+
+ekegg <- enrichKEGG(
+  gene          = entrez_genes,
+  organism      = "hsa",        # human KEGG database
+  pvalueCutoff  = 0.05,
+  pAdjustMethod = "BH",
+  qvalueCutoff  = 0.2
+)
+
+# Optional: convert IDs to gene names for readability
+ekegg <- setReadable(ekegg, OrgDb = org.Hs.eg.db, keyType = "ENTREZID")
+
+############################################################
+# 📈 6. Visualization (Dotplot)
+############################################################
+
+p <- dotplot(ekegg, showCategory = 20) +
+  ggtitle("KEGG Pathway Enrichment (Top DESeq2 Genes)") +
+  theme_classic() +
+  theme(
+    panel.grid = element_blank(),
+    plot.title = element_text(hjust = 0.5),
+    axis.text.y = element_text(size = 12),  # bigger pathway labels
+    axis.text.x = element_text(size = 11)
+  )
+
+print(p)
+
+############################################################
+# 💾 Save plot
+############################################################
+
+ggsave(
+  filename = "KEGG_enrichment_dotplot.png",
+  plot = p,
+  width = 6,   # narrower figure
+  height = 8,
+  dpi = 300
+)
+
+############################################################
+# 📋 7. Export KEGG results table
+############################################################
+
+kegg_table <- as.data.frame(ekegg)
+
+write.csv(
+  kegg_table,
+  "KEGG_enrichment_DESeq_top_genes.csv",
+  row.names = FALSE
+)
+
+write.table(
+  kegg_table,
+  file = "KEGG_enrichment_DESeq_top_genes.txt",
+  sep = "\t",
+  quote = FALSE,
+  row.names = FALSE
+)
