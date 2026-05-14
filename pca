@@ -1,0 +1,78 @@
+##----------------------------------------------------------------------
+## FIGURE 1 — Principal Component Analysis (PCA)
+## Author - Smeeta Shrestha + Chatgtp
+##----------------------------------------------------------------------
+# Apply Variance Stabilizing Transformation (VST)
+# Purpose:
+# - Stabilizes variance across the range of mean expression values
+# - Reduces heteroscedasticity inherent in raw RNA-seq counts
+# - Prepares data for unsupervised clustering (PCA)
+vsd <- vst(dds, blind = FALSE)
+
+##----------------------------------------------------------------------
+## Extract PCA coordinates from transformed data
+##----------------------------------------------------------------------
+
+# Compute PCA using top variable genes from VST-transformed matrix
+# intgroup = "condition" ensures samples are labeled by experimental group
+# returnData = TRUE extracts PCA coordinates for custom ggplot visualization
+pcaData <- plotPCA(
+  vsd,
+  intgroup = "condition",
+  returnData = TRUE
+)
+
+##----------------------------------------------------------------------
+## Compute explained variance for axis annotation
+##----------------------------------------------------------------------
+
+# Extract percentage of variance explained by each principal component
+# Used to annotate axis labels in publication-quality figure
+percentVar <- round(100 * attr(pcaData, "percentVar"))
+
+##----------------------------------------------------------------------
+## Build PCA visualization (Figure 1)
+##----------------------------------------------------------------------
+
+# Construct PCA scatter plot:
+# - PC1 vs PC2 represent major axes of transcriptional variation
+# - Color encodes biological condition (IDCA vs Ctrl)
+p1 <- ggplot(
+  pcaData,
+  aes(PC1, PC2, color = condition)
+) +
+  geom_point(size = 5) +  # increase point size for publication clarity
+
+  # Axis labels include explained variance percentages
+  xlab(paste0("PC1: ", percentVar[1], "% variance")) +
+  ylab(paste0("PC2: ", percentVar[2], "% variance")) +
+
+  # Clean publication-ready theme
+  theme_bw(base_size = 16) +
+  theme(
+    panel.grid.major = element_blank(),   # remove major gridlines
+    panel.grid.minor = element_blank(),   # remove minor gridlines
+    axis.line = element_line(color = "black"), # emphasize axis lines
+    panel.border = element_blank(),       # remove box border
+    legend.position = "bottom"            # place legend below plot
+  )
+
+##----------------------------------------------------------------------
+## Render PCA plot
+##----------------------------------------------------------------------
+
+# Display PCA plot in R environment
+print(p1)
+
+##----------------------------------------------------------------------
+## Save publication-quality figure
+##----------------------------------------------------------------------
+
+# Export PCA plot as high-resolution image suitable for manuscripts
+ggsave(
+  "Figure1_PCA_plot.png",
+  p1,
+  width = 3,
+  height = 3.5,
+  dpi = 300
+)
